@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+*.db
+*.db-journal
+.env
+.DS_Store
+
+# Private planning notes (not published)
+workout-consistency-tracker-handoff.md
