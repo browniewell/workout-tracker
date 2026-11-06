@@ -1,4 +1,3 @@
-import { get } from "node:http";
 import type { DayLog, Workout } from "./dayLog.js";
 import {
   getStatus,
