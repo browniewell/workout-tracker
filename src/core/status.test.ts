@@ -1,5 +1,10 @@
 import type { DayLog, Workout } from "./dayLog.js";
-import { getStatus } from "./status.js";
+import {
+  getStatus,
+  getStreak,
+  type Status,
+  type StreakStatus,
+} from "./status.js";
 import { describe, it, expect } from "vitest";
 
 const today = "2026-11-01";
@@ -69,5 +74,29 @@ describe("getStatus", () => {
     expect(getStatus({ ...emptyDayLog, date: tomorrow }, today)).toEqual(
       "Pending",
     );
+  });
+});
+
+describe("getStreak", () => {
+  it.each<[Status, Status, Status, StreakStatus]>([
+    ["Complete", "Complete", "Complete", "On Track"],
+    ["Missed", "Missed", "Complete", "On Track"],
+    ["Missed", "Missed", "Rest", "On Track"],
+    ["Missed", "Missed", "Sick", "On Track"],
+    ["Missed", "Rest", "Pending", "On Track"],
+    ["Missed", "Sick", "Pending", "On Track"],
+    ["Complete", "Missed", "Pending", "At Risk"],
+    ["Missed", "Missed", "Pending", "Broken"],
+  ])(
+    `Get streak status for %s - %s - %s = %s => %s`,
+    (tminus2, tminus1, t, result) => {
+      expect(getStreak(tminus2, tminus1, t)).toEqual(result);
+    },
+  );
+  it("Handle undefined tminus2", () => {
+    expect(getStreak(undefined, "Missed", "Pending")).toEqual("At Risk");
+  });
+  it("Handle undefined tminus2 and tminus1", () => {
+    expect(getStreak(undefined, undefined, "Pending")).toEqual("On Track");
   });
 });
