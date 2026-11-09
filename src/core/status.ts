@@ -1,12 +1,31 @@
-import type { DayLog } from "./dayLog.js";
+import type { DayLog, WorkoutSettings } from "./dayLog.js";
 
 type Status = "Complete" | "Rest" | "Sick" | "Missed" | "Pending";
 
 type StreakStatus = "On Track" | "At Risk" | "Broken";
 
-function getStatus(log: DayLog, today: string): Status {
-  if ((log.workouts?.length ?? 0) > 0) {
-    return "Complete";
+function getStatus(
+  log: DayLog,
+  today: string,
+  workoutSettings: WorkoutSettings,
+): Status {
+  for (const workout of log.workouts ?? []) {
+    if (workout.durationMins <= 0) {
+      throw new Error("Workout duration must be greater than zero");
+    }
+    if (
+      workout.type === "lift" ||
+      workout.type === "ride" ||
+      workout.type === "other"
+    ) {
+      return "Complete";
+    }
+    if (
+      workout.type === "walk" &&
+      workout.durationMins >= workoutSettings.walkMinDurationMins
+    ) {
+      return "Complete";
+    }
   }
   if (log.isRest) {
     return "Rest";
