@@ -7,10 +7,14 @@ type DayLog = {
 
 type Workout = {
   type: "lift" | "ride" | "walk" | "other";
-  duration?: number;
+  durationMins: number;
   miles?: number;
   steps?: number;
-  volume?: number;
+  volumeLbs?: number;
 };
 
-export type { DayLog, Workout };
+type WorkoutSettings = {
+  walkMinDurationMins: number;
+};
+
+export type { DayLog, Workout, WorkoutSettings };
