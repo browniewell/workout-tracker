@@ -30,260 +30,241 @@ const emptyDayLog: DayLog = {
   date: today,
 };
 
+function statusToday(workouts: Workout[], isRest: boolean) {
+  return getStatus(
+    {
+      ...workoutDayLog,
+      workouts,
+      isRest,
+    },
+    today,
+    workoutSettings,
+  );
+}
+
 describe("getStatus", () => {
-  it("Returns completed status with one workout", () => {
-    expect(getStatus(workoutDayLog, today, workoutSettings)).toEqual(
-      "Complete",
-    );
-  });
-  it("Returns completed status with multiple workouts", () => {
-    expect(
-      getStatus(
-        { ...workoutDayLog, workouts: [qualifyingWorkout, qualifyingWorkout] },
-        today,
-        workoutSettings,
-      ),
-    ).toEqual("Complete");
-  });
-  it("Returns Pending for non qualifying walk today", () => {
-    expect(
-      getStatus(
-        { ...workoutDayLog, workouts: [{ type: "walk", durationMins: 19 }] },
-        today,
-        workoutSettings,
-      ),
-    ).toEqual("Pending");
-  });
-  it("Returns Missed for non qualifying walk yesterday", () => {
-    expect(
-      getStatus(
-        {
-          ...workoutDayLog,
-          date: yesterday,
-          workouts: [{ type: "walk", durationMins: 19 }],
-        },
-        today,
-        workoutSettings,
-      ),
-    ).toEqual("Missed");
-  });
-  it("Returns Complete for walk duration equal to minimum", () => {
-    expect(
-      getStatus(
-        { ...workoutDayLog, workouts: [{ type: "walk", durationMins: 20 }] },
-        today,
-        workoutSettings,
-      ),
-    ).toEqual("Complete");
-  });
-  it("Throws error for lift with no duration", () => {
-    expect(() =>
-      getStatus(
-        {
-          ...workoutDayLog,
-          workouts: [{ type: "lift", durationMins: 0 }],
-        },
-        today,
-        workoutSettings,
-      ),
-    ).toThrow(nonzeroDurationMessage);
-  });
-  it("Throws error for ride with no duration", () => {
-    expect(() =>
-      getStatus(
-        {
-          ...workoutDayLog,
-          workouts: [{ type: "ride", durationMins: 0 }],
-        },
-        today,
-        workoutSettings,
-      ),
-    ).toThrow(nonzeroDurationMessage);
-  });
-  it("Throws error for other with no duration", () => {
-    expect(() =>
-      getStatus(
-        {
-          ...workoutDayLog,
-          workouts: [{ type: "other", durationMins: 0 }],
-        },
-        today,
-        workoutSettings,
-      ),
-    ).toThrow(nonzeroDurationMessage);
-  });
-  it("Throws error for negative duration", () => {
-    expect(() =>
-      getStatus(
-        {
-          ...workoutDayLog,
-          workouts: [{ type: "lift", durationMins: -5 }],
-        },
-        today,
-        workoutSettings,
-      ),
-    ).toThrow(nonzeroDurationMessage);
-  });
-  it("Returns Complete for lift with any duration", () => {
-    expect(
-      getStatus(
-        {
-          ...workoutDayLog,
-          workouts: [{ type: "lift", durationMins: 1 }],
-        },
-        today,
-        workoutSettings,
-      ),
-    ).toEqual("Complete");
-  });
-  it("Returns Complete for ride with any duration", () => {
-    expect(
-      getStatus(
-        {
-          ...workoutDayLog,
-          workouts: [{ type: "ride", durationMins: 1 }],
-        },
-        today,
-        workoutSettings,
-      ),
-    ).toEqual("Complete");
-  });
-  it("Returns Complete for other with any duration", () => {
-    expect(
-      getStatus(
-        {
-          ...workoutDayLog,
-          workouts: [{ type: "other", durationMins: 1 }],
-        },
-        today,
-        workoutSettings,
-      ),
-    ).toEqual("Complete");
+  describe("walks", () => {
+    it.each([
+      { walks: [10, 10], expected: "Complete" },
+      { walks: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2], expected: "Complete" },
+      { walks: [10, 10, 10], expected: "Complete" },
+      { walks: [10, 9], expected: "Pending" },
+      { walks: [20], expected: "Complete" },
+      { walks: [25], expected: "Complete" },
+      { walks: [19], expected: "Pending" },
+    ])(`walks of $walks minutes today -> $expected`, ({ walks, expected }) => {
+      const testWorkouts = walks.map((duration): Workout => ({
+        type: "walk",
+        durationMins: duration,
+      }));
+      expect(statusToday(testWorkouts, false)).toEqual(expected);
+    });
+
+    it("Returns Missed for non qualifying walk yesterday", () => {
+      expect(
+        getStatus(
+          {
+            ...workoutDayLog,
+            date: yesterday,
+            workouts: [{ type: "walk", durationMins: 19 }],
+          },
+          today,
+          workoutSettings,
+        ),
+      ).toEqual("Missed");
+    });
+
+    it("Returns Missed for two walks from a previous day which do not add up to the threshold", () => {
+      expect(
+        getStatus(
+          {
+            ...workoutDayLog,
+            date: yesterday,
+            workouts: [
+              { type: "walk", durationMins: 10 },
+              { type: "walk", durationMins: 9 },
+            ],
+          },
+          today,
+          workoutSettings,
+        ),
+      ).toEqual("Missed");
+    });
   });
 
-  it("Returns Complete for lift with any duration and non qualifying walk", () => {
-    expect(
-      getStatus(
-        {
-          ...workoutDayLog,
-          workouts: [
+  describe("lifts", () => {
+    it("Returns completed status with one workout", () => {
+      expect(getStatus(workoutDayLog, today, workoutSettings)).toEqual(
+        "Complete",
+      );
+    });
+    it("Returns completed status with multiple workouts", () => {
+      expect(
+        statusToday([qualifyingWorkout, qualifyingWorkout], false),
+      ).toEqual("Complete");
+    });
+
+    it("Throws error for lift with no duration", () => {
+      expect(() =>
+        statusToday([{ type: "lift", durationMins: 0 }], false),
+      ).toThrow(nonzeroDurationMessage);
+    });
+    it("Returns Complete for lift with any duration", () => {
+      expect(statusToday([{ type: "lift", durationMins: 1 }], false)).toEqual(
+        "Complete",
+      );
+    });
+    it("Returns Complete for lift with any duration and non qualifying walk", () => {
+      expect(
+        statusToday(
+          [
             { type: "lift", durationMins: 1 },
             { type: "walk", durationMins: 5 },
           ],
-        },
-        today,
-        workoutSettings,
-      ),
-    ).toEqual("Complete");
-  });
-  it("Returns Complete for non qualifying walk and lift with any duration", () => {
-    expect(
-      getStatus(
-        {
-          ...workoutDayLog,
-          workouts: [
+          false,
+        ),
+      ).toEqual("Complete");
+    });
+    it("Returns Complete for non qualifying walk and lift with any duration", () => {
+      expect(
+        statusToday(
+          [
             { type: "walk", durationMins: 5 },
             { type: "lift", durationMins: 1 },
           ],
-        },
-        today,
-        workoutSettings,
-      ),
-    ).toEqual("Complete");
-  });
-  // TODO: At some point we may need to reject invalid duration values, even if they come after a qualifying workout
-  it("Returns Complete for lift with any duration and invalid walk duration", () => {
-    expect(
-      getStatus(
-        {
-          ...workoutDayLog,
-          workouts: [
+          false,
+        ),
+      ).toEqual("Complete");
+    });
+
+    // TODO: At some point we may need to reject invalid duration values, even if they come after a qualifying workout
+    it("Returns Complete for lift with any duration and invalid walk duration", () => {
+      expect(
+        statusToday(
+          [
             { type: "lift", durationMins: 1 },
             { type: "walk", durationMins: 0 },
           ],
-        },
-        today,
-        workoutSettings,
-      ),
-    ).toEqual("Complete");
-  });
-  it("Returns Rest for non qualifying walk and rest day", () => {
-    expect(
-      getStatus(
-        {
-          ...workoutDayLog,
-          workouts: [{ type: "walk", durationMins: 5 }],
-          isRest: true,
-        },
-        today,
-        workoutSettings,
-      ),
-    ).toEqual("Rest");
-  });
-  it("Returns Sick for non qualifying walk and sick day", () => {
-    expect(
-      getStatus(
-        {
-          ...workoutDayLog,
-          workouts: [{ type: "walk", durationMins: 5 }],
-          isSick: true,
-        },
-        today,
-        workoutSettings,
-      ),
-    ).toEqual("Sick");
+          false,
+        ),
+      ).toEqual("Complete");
+    });
   });
 
-  it("Returns Pending if log is empty and it is today", () => {
-    expect(getStatus(emptyDayLog, today, workoutSettings)).toEqual("Pending");
+  describe("rides", () => {
+    it("Returns Complete for ride with any duration", () => {
+      expect(statusToday([{ type: "ride", durationMins: 1 }], false)).toEqual(
+        "Complete",
+      );
+    });
   });
-  it("Returns Missed if yesterday's log is empty ", () => {
-    expect(
-      getStatus({ ...emptyDayLog, date: yesterday }, today, workoutSettings),
-    ).toEqual("Missed");
+
+  describe("other", () => {
+    it("Returns Complete for other with any duration", () => {
+      expect(statusToday([{ type: "other", durationMins: 1 }], false)).toEqual(
+        "Complete",
+      );
+    });
   });
-  it("Returns Rest if log specifies rest day", () => {
-    expect(
-      getStatus({ ...emptyDayLog, isRest: true }, today, workoutSettings),
-    ).toEqual("Rest");
+
+  describe("errors", () => {
+    it("Throws error for ride with no duration", () => {
+      expect(() =>
+        statusToday([{ type: "ride", durationMins: 0 }], false),
+      ).toThrow(nonzeroDurationMessage);
+    });
+    it("Throws error for other with no duration", () => {
+      expect(() =>
+        statusToday([{ type: "other", durationMins: 0 }], false),
+      ).toThrow(nonzeroDurationMessage);
+    });
+    it("Throws error for negative duration", () => {
+      expect(() =>
+        statusToday([{ type: "lift", durationMins: -5 }], false),
+      ).toThrow(nonzeroDurationMessage);
+    });
   });
-  it("Returns Rest if log specifies rest day in the past", () => {
-    expect(
-      getStatus(
-        { ...emptyDayLog, isRest: true, date: yesterday },
-        today,
-        workoutSettings,
-      ),
-    ).toEqual("Rest");
+
+  describe("rest", () => {
+    it("Returns Rest for non qualifying walk and rest day", () => {
+      expect(statusToday([{ type: "walk", durationMins: 5 }], true)).toEqual(
+        "Rest",
+      );
+    });
+    it("Returns Rest if log specifies rest day", () => {
+      expect(
+        getStatus({ ...emptyDayLog, isRest: true }, today, workoutSettings),
+      ).toEqual("Rest");
+    });
+    it("Returns Rest if log specifies rest day in the past", () => {
+      expect(
+        getStatus(
+          { ...emptyDayLog, isRest: true, date: yesterday },
+          today,
+          workoutSettings,
+        ),
+      ).toEqual("Rest");
+    });
+    it("Returns Complete if rest day and workout done", () => {
+      expect(
+        getStatus({ ...workoutDayLog, isRest: true }, today, workoutSettings),
+      ).toEqual("Complete");
+    });
   });
-  it("Returns Sick if log specifies sick day", () => {
-    expect(
-      getStatus({ ...emptyDayLog, isSick: true }, today, workoutSettings),
-    ).toEqual("Sick");
+
+  describe("sick", () => {
+    it("Returns Sick for non qualifying walk and sick day", () => {
+      expect(
+        getStatus(
+          {
+            ...workoutDayLog,
+            workouts: [{ type: "walk", durationMins: 5 }],
+            isSick: true,
+          },
+          today,
+          workoutSettings,
+        ),
+      ).toEqual("Sick");
+    });
+    it("Returns Sick if log specifies sick day", () => {
+      expect(
+        getStatus({ ...emptyDayLog, isSick: true }, today, workoutSettings),
+      ).toEqual("Sick");
+    });
+    it("Returns Sick if log specifies sick day in the past", () => {
+      expect(
+        getStatus(
+          { ...emptyDayLog, isSick: true, date: yesterday },
+          today,
+          workoutSettings,
+        ),
+      ).toEqual("Sick");
+    });
+
+    it("Returns Complete if sick day and workout done", () => {
+      expect(
+        getStatus({ ...workoutDayLog, isSick: true }, today, workoutSettings),
+      ).toEqual("Complete");
+    });
   });
-  it("Returns Sick if log specifies sick day in the past", () => {
-    expect(
-      getStatus(
-        { ...emptyDayLog, isSick: true, date: yesterday },
-        today,
-        workoutSettings,
-      ),
-    ).toEqual("Sick");
+
+  describe("pending", () => {
+    it("Returns Pending if log is empty and it is today", () => {
+      expect(getStatus(emptyDayLog, today, workoutSettings)).toEqual("Pending");
+    });
+    it("Returns Pending if date is in the future", () => {
+      expect(
+        getStatus({ ...emptyDayLog, date: tomorrow }, today, workoutSettings),
+      ).toEqual("Pending");
+    });
   });
-  it("Returns Complete if rest day and workout done", () => {
-    expect(
-      getStatus({ ...workoutDayLog, isRest: true }, today, workoutSettings),
-    ).toEqual("Complete");
-  });
-  it("Returns Complete if sick day and workout done", () => {
-    expect(
-      getStatus({ ...workoutDayLog, isSick: true }, today, workoutSettings),
-    ).toEqual("Complete");
-  });
-  it("Returns Pending if date is in the future", () => {
-    expect(
-      getStatus({ ...emptyDayLog, date: tomorrow }, today, workoutSettings),
-    ).toEqual("Pending");
+
+  describe("missed", () => {
+    it("Returns Missed if yesterday's log is empty ", () => {
+      expect(
+        getStatus({ ...emptyDayLog, date: yesterday }, today, workoutSettings),
+      ).toEqual("Missed");
+    });
   });
 });
 
@@ -298,7 +279,7 @@ describe("getStreak", () => {
     ["Complete", "Missed", "Pending", "At Risk"],
     ["Missed", "Missed", "Pending", "Broken"],
   ])(
-    `Get streak status for %s - %s - %s = %s => %s`,
+    `Get streak status for %s - %s - %s = %s`,
     (tminus2, tminus1, t, result) => {
       expect(getStreak(tminus2, tminus1, t)).toEqual(result);
     },
