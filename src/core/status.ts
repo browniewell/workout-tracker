@@ -9,6 +9,7 @@ function getStatus(
   today: string,
   workoutSettings: WorkoutSettings,
 ): Status {
+  let totalWalkTime = 0;
   for (const workout of log.workouts ?? []) {
     if (workout.durationMins <= 0) {
       throw new Error("Workout duration must be greater than zero");
@@ -20,11 +21,11 @@ function getStatus(
     ) {
       return "Complete";
     }
-    if (
-      workout.type === "walk" &&
-      workout.durationMins >= workoutSettings.walkMinDurationMins
-    ) {
-      return "Complete";
+    if (workout.type === "walk") {
+      totalWalkTime += workout.durationMins;
+      if (totalWalkTime >= workoutSettings.walkMinDurationMins) {
+        return "Complete";
+      }
     }
   }
   if (log.isRest) {
