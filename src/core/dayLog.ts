@@ -1,8 +1,7 @@
 type DayLog = {
   date: string;
   workouts?: Workout[];
-  isRest?: boolean;
-  isSick?: boolean;
+  marker?: "rest" | "sick";
 };
 
 type Workout = {
@@ -14,7 +13,8 @@ type Workout = {
 };
 
 type WorkoutSettings = {
-  walkMinDurationMins: number;
+  minWalkDurationMins: number;
+  startDate: string;
 };
 
 export type { DayLog, Workout, WorkoutSettings };

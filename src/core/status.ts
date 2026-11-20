@@ -23,15 +23,15 @@ function getStatus(
     }
     if (workout.type === "walk") {
       totalWalkTime += workout.durationMins;
-      if (totalWalkTime >= workoutSettings.walkMinDurationMins) {
+      if (totalWalkTime >= workoutSettings.minWalkDurationMins) {
         return "Complete";
       }
     }
   }
-  if (log.isRest) {
+  if (log.marker === "rest") {
     return "Rest";
   }
-  if (log.isSick) {
+  if (log.marker === "sick") {
     return "Sick";
   }
 
